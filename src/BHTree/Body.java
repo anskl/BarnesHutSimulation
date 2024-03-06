@@ -1,12 +1,14 @@
 package BHTree;
 
+import java.util.Objects;
+
 public final class Body {
+    private final String name;
+    private final double mass;
     private double x;
     private double y;
     private double vX;
     private double vY;
-    private final double mass;
-    private final String name;
 
     public Body(double x, double y, double vX, double vY, double mass, String name) {
         this.x = x;
@@ -19,6 +21,14 @@ public final class Body {
 
     public static Body newInstance(Body b) {
         return new Body(b.x, b.y, b.vX, b.vY, b.mass, b.name);
+    }
+
+    public static Body centerOfMass(Body a, Body b) {
+        final double m = a.mass + b.mass;
+        final double x = ((a.x * a.mass) + (b.x * b.mass)) / m;
+        final double y = ((a.y * a.mass) + (b.y * b.mass)) / m;
+
+        return new Body(x, y, 0, 0, m, "");
     }
 
     public double getX() {
@@ -43,14 +53,6 @@ public final class Body {
         return Math.sqrt(Math.pow(x - b.x, 2) + Math.pow(y - b.y, 2));
     }
 
-    public static Body centerOfMass(Body a, Body b) {
-        final double m = a.mass + b.mass;
-        final double x = ((a.x * a.mass) + (b.x * b.mass)) / m;
-        final double y = ((a.y * a.mass) + (b.y * b.mass)) / m;
-
-        return new Body(x, y, 0, 0, m, "");
-    }
-
     Force forceFrom(Body b) {
         return forceFrom(b, distanceFrom(b));
     }
@@ -69,11 +71,11 @@ public final class Body {
         double ax = f.Fx() / mass;
         double ay = f.Fy() / mass;
 
-        //update speed
+        // update speed
         vX += ax;
         vY += ay;
 
-        //update position
+        // update position
         x += vX;
         y += vY;
     }
@@ -82,38 +84,22 @@ public final class Body {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         Body body = (Body) o;
-
-        if (Double.compare(body.x, x) != 0) return false;
-        if (Double.compare(body.y, y) != 0) return false;
-        if (Double.compare(body.vX, vX) != 0) return false;
-        if (Double.compare(body.vY, vY) != 0) return false;
-        if (Double.compare(body.mass, mass) != 0) return false;
-        return name.equals(body.name);
+        return Double.compare(mass, body.mass) == 0 &&
+               Double.compare(x, body.x) == 0 &&
+               Double.compare(y, body.y) == 0 &&
+               Double.compare(vX, body.vX) == 0 &&
+               Double.compare(vY, body.vY) == 0 &&
+               Objects.equals(name, body.name);
     }
 
     @Override
     public int hashCode() {
-        int result;
-        long temp;
-        temp = Double.doubleToLongBits(x);
-        result = (int) (temp ^ (temp >>> 32));
-        temp = Double.doubleToLongBits(y);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        temp = Double.doubleToLongBits(vX);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        temp = Double.doubleToLongBits(vY);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        temp = Double.doubleToLongBits(mass);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        result = 31 * result + name.hashCode();
-        return result;
+        return Objects.hash(name, mass, x, y, vX, vY);
     }
 
     @Override
     public String toString() {
-        String sb = "{" + x + ", " + y + ", " + vX + ", " + vY + ", " + mass + ", \"" + name + "\"}";
-        return sb;
+        return x + " " + y + " " + vX + " " + vY + " " + mass + " " + name;
     }
 }

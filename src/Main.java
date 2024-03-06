@@ -10,10 +10,11 @@ import java.util.concurrent.Executors;
 
 public class Main {
     public static BHTree simulateTime(BHTree old, int generations, int threads) throws InterruptedException {
+        if (threads == 0) return simulateTimeSerial(old, generations);
         BHTree nextGen;
         try (ExecutorService exec = Executors.newFixedThreadPool(threads)) {
             while (generations-- != 0) {
-                nextGen = new BHTree(BoundingBox.newInstance(old.box));
+                nextGen = new BHTree(old.getBox());
 
                 List<BHTree> list = old.getAllNodesWithBodies();
 
@@ -41,7 +42,7 @@ public class Main {
 
     public static BHTree simulateTimeSerial(BHTree root, int generations) {
         while (generations-- != 0) {
-            BHTree nextGen = new BHTree(BoundingBox.newInstance(root.box));
+            BHTree nextGen = new BHTree(root.getBox());
             for (BHTree x : root.getAllNodesWithBodies()) {
                 Body body = Body.newInstance(x.getBody());
                 Force force = root.calculateForce(body, x.getLength());
@@ -59,23 +60,29 @@ public class Main {
             System.exit(1);
         }
 
-        BHTree root = BHTree.read(args[0]);
+       BHTree root = BHTree.fromFile(args[0]);
 
-        int generations = Integer.parseInt(args[1]);
-        int threads = Integer.parseInt(args[2]);
+        int generations = 0, threads = 0;
+
+        try {
+            generations = Integer.parseInt(args[1]);
+            threads = Integer.parseInt(args[2]);
+        } catch (NumberFormatException e) {
+            System.err.println("command line input args 2, 3 should be integers");
+            System.exit(1);
+        }
 
         long startTime = System.nanoTime();
         root = simulateTime(root, generations, threads);
+        // root = simulateTimSerial(root, generations);
         double secondsPassed = (System.nanoTime() - startTime) * 1e-9;
 
         System.out.println("secondsPassed = " + secondsPassed);
 
-        if (args.length == 4) {
-            try (PrintWriter pw = new PrintWriter(args[3])) {
-                pw.print(root);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
+        try (PrintWriter pw = new PrintWriter(args[3])) {
+            pw.print(root);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
     }
 }

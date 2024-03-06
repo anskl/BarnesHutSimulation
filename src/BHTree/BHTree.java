@@ -8,10 +8,9 @@ import java.util.List;
 import java.util.Objects;
 
 public final class BHTree {
+    private final BoundingBox box;
     private Body body;
-    private Body center;
-    public final BoundingBox box;
-
+    private Body centerOfMass;
     private BHTree quadI;
     private BHTree quadII;
     private BHTree quadIII;
@@ -21,10 +20,9 @@ public final class BHTree {
         this.box = box;
     }
 
-    public static BHTree read(String path) {
-
+    public static BHTree fromFile(String path) {
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
-            double bodiesCount = Double.parseDouble(br.readLine());
+            int bodiesCount = Integer.parseInt(br.readLine());
             final double worldSize = Double.parseDouble(br.readLine());
 
             BHTree root = new BHTree(new BoundingBox(0, 0, worldSize));
@@ -42,9 +40,11 @@ public final class BHTree {
             return root;
         } catch (IOException e) {
             System.err.println("file" + path + " could not be read");
+            System.exit(1);
+        } catch (NumberFormatException e) {
+            System.err.println("Error while parsing numbers from input file: " + e);
+            System.exit(1);
         }
-
-        assert false;
         return null;
     }
 
@@ -52,13 +52,13 @@ public final class BHTree {
 
         if (body == null && quadI == null) {
             body = b;
-            center = Body.newInstance(b);
+            centerOfMass = Body.newInstance(b);
             return;
         }
 
         if (quadI == null) divideIntoFour();
 
-        center = Body.centerOfMass(center, b);
+        centerOfMass = Body.centerOfMass(centerOfMass, b);
 
         insertInAppropriateQuad(b);
     }
@@ -69,6 +69,7 @@ public final class BHTree {
         quadIII = new BHTree(box.calcQuadIII());
         quadIV = new BHTree(box.calcQuadIV());
 
+        // move existing body in new quad (since we divided the tree)
         insertInAppropriateQuad(body);
         body = null;
     }
@@ -85,9 +86,8 @@ public final class BHTree {
         }
     }
 
-
     public List<Body> getAllBodies() {
-        ArrayList<Body> all = new ArrayList<>();
+        List<Body> all = new ArrayList<>();
 
         if (body != null) all.add(body);
 
@@ -102,7 +102,7 @@ public final class BHTree {
     }
 
     public List<BHTree> getAllNodesWithBodies() {
-        ArrayList<BHTree> all = new ArrayList<>();
+        List<BHTree> all = new ArrayList<>();
 
         if (body != null) all.add(this);
 
@@ -121,15 +121,15 @@ public final class BHTree {
     }
 
     public double getLength() {
-        return box.getSize() * 2;
+        return box.size() * 2;
     }
 
     public Force calculateForce(Body body, final double boxDimension) {
         final boolean containedHere = box.contains(body);
-        final double distance = center.distanceFrom(body);
+        final double distance = centerOfMass.distanceFrom(body);
 
         if (distance > boxDimension && !containedHere) {
-            return body.forceFrom(center, distance);
+            return body.forceFrom(centerOfMass, distance);
         } else {
             Force totalForce = new Force(0, 0);
 
@@ -142,33 +142,36 @@ public final class BHTree {
         }
     }
 
-    private static int levelsDeep = -1;
+    public BoundingBox getBox() {
+        return box;
+    }
 
-//    public String toStringTreeFormat() {
-//
-//        ++levelsDeep;
-//        StringBuilder sb = new StringBuilder();
-//
-//        sb.append("\t".repeat(levelsDeep));
-//        // for (int i = 0; i < levelsDeep; ++i) sb.append('\t');
-//
-//        sb.append(box);
-//        if (center != null)
-//            sb.append(", centerOfMass{").append(center.getX()).append(", ").append(center.getY()).append("}, totalMass: ").append(center.getMass());
-//
-//        if (body != null) sb.append(" -> ").append(body);
-//        sb.append('\n');
-//
-//        if (quadI != null) {
-//            sb.append(quadI.toStringTreeFormat());
-//            sb.append(quadII.toStringTreeFormat());
-//            sb.append(quadIII.toStringTreeFormat());
-//            sb.append(quadIV.toStringTreeFormat());
-//        }
-//
-//        --levelsDeep;
-//        return sb.toString();
-//    }
+    private static int levelsDeep = -1;
+    public String toStringTreeFormat() {
+        ++levelsDeep;
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("\t".repeat(levelsDeep));
+        // for (int i = 0; i < levelsDeep; ++i) sb.append('\t');
+
+        sb.append(box);
+        if (centerOfMass != null)
+            sb.append(", centerOfMass{").append(centerOfMass.getX()).append(", ").append(centerOfMass.getY())
+              .append("}, totalMass: ").append(centerOfMass.getMass());
+
+        if (body != null) sb.append(" -> ").append(body);
+        sb.append('\n');
+
+        if (quadI != null) {
+            sb.append(quadI.toStringTreeFormat());
+            sb.append(quadII.toStringTreeFormat());
+            sb.append(quadIII.toStringTreeFormat());
+            sb.append(quadIV.toStringTreeFormat());
+        }
+
+        --levelsDeep;
+        return sb.toString();
+    }
 
     @Override
     public String toString() {

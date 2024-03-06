@@ -1,4 +1,5 @@
 out*.txt
+*.class
 ### IntelliJ IDEA ###
 out/
 !**/src/main/**/out/
