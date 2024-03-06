@@ -1,4 +1,4 @@
-# Parallel Barnes-Hut algorithm
+# Parallel Barnes-Hut algorithm implementation in Java
 
 For gravitational simulation of `N` bodies in 2D space.
 
